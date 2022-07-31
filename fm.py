@@ -17,8 +17,12 @@ class PreviewType(enum.Enum):
     UNKNOWN = enum.auto()
 
 class Renderer:
-    def __init__(self):
+    def __init__(self, stdscr):
         curses.curs_set(False)
+
+        self.stdscr = stdscr
+        self.left = self.stdscr.subwin(curses.LINES, curses.COLS // 2 - 1, 0, 0)
+        self.right = self.stdscr.subwin(curses.LINES, curses.COLS // 2, 0, curses.COLS // 2 - 1)
 
         # Colours. Format: (pair_index, FG_COLOR, BG_COLOR)
         curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
@@ -50,8 +54,8 @@ class Renderer:
                 f"Previous Modification: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(modTime))}"
             ]
 
-    def update(self, stdscr):
-        c = stdscr.getch()
+    def update(self):
+        c = self.stdscr.getch()
 
         if c == curses.KEY_DOWN:
             self.filesIndex = self.filesIndex + 1
@@ -65,11 +69,17 @@ class Renderer:
             self.determinePreviewType()
 
             if self.previewType == PreviewType.FILE:
+                # Suspend curses
+                curses.endwin()
+
                 # Open the file
                 proc = subprocess.Popen(["nvim", os.path.join(self.wd, self.files[self.filesIndex])])
                 proc.wait()
-                stdscr.clear()
-                stdscr.refresh()
+
+                # Restart curses
+                self.stdscr = curses.initscr()
+                self.stdscr.clear()
+                self.stdscr.refresh()
             elif self.previewType == PreviewType.DIRECTORY:
                 # Change directories into the file and update everything
                 os.chdir(os.path.join(self.wd, self.files[self.filesIndex]))
@@ -93,62 +103,52 @@ class Renderer:
 
         return False
 
-    def render(self, left, right, stdscr):
-        left.erase()
-        right.erase()
+    def render(self):
+        self.left.erase()
+        self.right.erase()
 
-        left.box()
-        right.box()
+        self.left.box()
+        self.right.box()
 
         # Left screen (current directory)
         i = 1
         for f in self.files:
             col = curses.color_pair(1) if (i - 1) != self.filesIndex else curses.color_pair(2)
-            left.addstr(i, 1, f, col)
+            self.left.addstr(i, 1, f, col)
             i = i + 1
 
-        left.addstr(curses.LINES - 1, 1, self.wd)
+        self.left.addstr(curses.LINES - 1, 1, self.wd)
 
         # Right screen (preview)
         if self.previewType == PreviewType.FILE:
-            right.addstr(1, 1, f"File: {os.path.join(self.wd, self.files[self.filesIndex])}", curses.color_pair(1))
+            self.right.addstr(1, 1, f"File: {os.path.join(self.wd, self.files[self.filesIndex])}", curses.color_pair(1))
             i = 2
             for s in self.fileInfoStrs:
-                right.addstr(i, 1, s, curses.color_pair(1))
+                self.right.addstr(i, 1, s, curses.color_pair(1))
                 i = i + 1
         elif self.previewType == PreviewType.DIRECTORY:
-            right.addstr(1, 1, f"Directory: {os.path.join(self.wd, self.files[self.filesIndex])}", curses.color_pair(1))
+            self.right.addstr(1, 1, f"Directory: {os.path.join(self.wd, self.files[self.filesIndex])}", curses.color_pair(1))
             i = 2
             for f in self.previewDirList:
-                right.addstr(i, 1, f"\t> {f}", curses.color_pair(1))
+                self.right.addstr(i, 1, f"\t> {f}", curses.color_pair(1))
                 i = i + 1
         else:
             pass
 
-        left.refresh()
-        right.refresh()
-
+        self.left.refresh()
+        self.right.refresh()
 
 def main(stdscr):
-    r = Renderer()
-
-    #stdscr.immedok(True)
-
+    r = Renderer(stdscr)
     stdscr.clear()
 
-    left = stdscr.subwin(curses.LINES, curses.COLS // 2 - 1, 0, 0)
-    #left.immedok(True)
-
-    right = stdscr.subwin(curses.LINES, curses.COLS // 2, 0, curses.COLS // 2 - 1)
-    #right.immedok(True)
-
-    r.render(left, right, stdscr) # Get something onto the screen
+    r.render() # Get something onto the screen
 
     while True:
-        if r.update(stdscr):
+        if r.update():
             break
 
-        r.render(left, right, stdscr)
+        r.render()
 
 if __name__ == "__main__":
     wrapper(main)
