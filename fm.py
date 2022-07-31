@@ -66,7 +66,10 @@ class Renderer:
 
             if self.previewType == PreviewType.FILE:
                 # Open the file
-                subprocess.call(["nvim", os.path.join(self.wd, self.files[self.filesIndex])])
+                proc = subprocess.Popen(["nvim", os.path.join(self.wd, self.files[self.filesIndex])])
+                proc.wait()
+                stdscr.clear()
+                stdscr.refresh()
             elif self.previewType == PreviewType.DIRECTORY:
                 # Change directories into the file and update everything
                 os.chdir(os.path.join(self.wd, self.files[self.filesIndex]))
@@ -74,7 +77,6 @@ class Renderer:
                 self.files = os.listdir(self.wd)
                 self.files.sort()
                 self.filesIndex = 0
-                self.determinePreviewType()
         elif c == curses.KEY_BACKSPACE:
             # Go to parent dir
             os.chdir("../")
@@ -82,10 +84,10 @@ class Renderer:
             self.files = os.listdir(self.wd)
             self.files.sort()
             self.filesIndex = 0
-            self.determinePreviewType()
         elif c == curses.ascii.ESC:
-            print("Exiting...")
-            return True
+            #print("Exiting...")
+            #return True
+            pass
 
         self.determinePreviewType()
 
