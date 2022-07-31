@@ -9,7 +9,38 @@ import os
 import os.path
 
 import subprocess
+import stat
 import time
+
+def parsePermissions(mode):
+    perms = list("---------")
+
+    # Owner Permissions
+    if bool(mode & stat.S_IRUSR):
+        perms[0] = "r"
+    if bool(mode & stat.S_IWUSR):
+        perms[1] = "w"
+    if bool(mode & stat.S_IXUSR):
+        perms[2] = "x"
+
+    # Group Permissions
+    if bool(mode & stat.S_IRGRP):
+        perms[3] = "r"
+    if bool(mode & stat.S_IWGRP):
+        perms[4] = "w"
+    if bool(mode & stat.S_IXGRP):
+        perms[5] = "x"
+
+    # Others Permissions
+    if bool(mode & stat.S_IROTH):
+        perms[6] = "r"
+    if bool(mode & stat.S_IWOTH):
+        perms[7] = "w"
+    if bool(mode & stat.S_IXOTH):
+        perms[8] = "x"
+
+    return "".join(perms)
+
 
 class PreviewType(enum.Enum):
     FILE = enum.auto()
@@ -48,10 +79,12 @@ class Renderer:
             fileInfo = os.stat(path)
             modTime = fileInfo.st_mtime
             size = fileInfo.st_size
+            perms = parsePermissions(fileInfo.st_mode)
 
             self.fileInfoStrs = [
                 f"Size: {size} B",
-                f"Previous Modification: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(modTime))}"
+                f"Previous Modification: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(modTime))}",
+                f"Permissions: {perms}"
             ]
 
     def update(self):
@@ -95,9 +128,7 @@ class Renderer:
             self.files.sort()
             self.filesIndex = 0
         elif c == curses.ascii.ESC:
-            #print("Exiting...")
-            #return True
-            pass
+            return True
 
         self.determinePreviewType()
 
