@@ -129,7 +129,7 @@ class Renderer:
             self.files = os.listdir(self.wd)
             self.files.sort()
             self.filesIndex = 0
-        elif c == curses.ascii.ESC:
+        elif c == ord('q'):
             return True
 
         self.determinePreviewType()
@@ -183,7 +183,7 @@ def main(stdscr):
 
         r.render()
 
-    if sys.argv[1] is not None:
+    if len(sys.argv) > 1:
         # sys.argv[1] will contain the tmpfile to write the working directory into IF it exists
         with open(sys.argv[1], "w") as out:
             out.write(r.wd)
