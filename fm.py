@@ -1,15 +1,17 @@
 #!/bin/python3
 
 import curses
-from curses import wrapper
 import curses.ascii
+from curses import wrapper
 
 import enum
+
 import os
 import os.path
 
 import subprocess
 import stat
+import sys
 import time
 
 def parsePermissions(mode):
@@ -180,6 +182,11 @@ def main(stdscr):
             break
 
         r.render()
+
+    if sys.argv[1] is not None:
+        # sys.argv[1] will contain the tmpfile to write the working directory into IF it exists
+        with open(sys.argv[1], "w") as out:
+            out.write(r.wd)
 
 if __name__ == "__main__":
     wrapper(main)
