@@ -73,21 +73,28 @@ class Renderer:
 
         if os.path.isdir(path):
             self.previewType = PreviewType.DIRECTORY
-            self.previewDirList = os.listdir(path)
-            self.previewDirList.sort()
+            try:
+                self.previewDirList = os.listdir(path)
+                self.previewDirList.sort()
+            except PermissionError:
+                self.previewDirList = ["ERROR: Failed to obtain contents of directory."]
         else:
             self.previewType = PreviewType.FILE
             
-            fileInfo = os.stat(path)
-            modTime = fileInfo.st_mtime
-            size = fileInfo.st_size
-            perms = parsePermissions(fileInfo.st_mode)
+            try:
+                fileInfo = os.stat(path)
+                modTime = fileInfo.st_mtime
+                size = fileInfo.st_size
+                perms = parsePermissions(fileInfo.st_mode)
 
-            self.fileInfoStrs = [
-                f"Size: {size} B",
-                f"Previous Modification: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(modTime))}",
-                f"Permissions: {perms}"
-            ]
+                self.fileInfoStrs = [
+                    f"Size: {size} B",
+                    f"Previous Modification: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(modTime))}",
+                    f"Permissions: {perms}"
+                ]
+            except PermissionError:
+                self.fileInfoStrs = ["ERROR: Failed to obtain file statistics."]
+
 
     def update(self):
         c = self.stdscr.getch()
@@ -149,8 +156,10 @@ class Renderer:
             col = curses.color_pair(1) if (i - 1) != self.filesIndex else curses.color_pair(2)
             self.left.addstr(i, 1, f, col)
             i = i + 1
+            if i > curses.LINES - 2:
+                break # TODO Fix this so that we can "scroll" through the files if there are too many
 
-        self.left.addstr(curses.LINES - 1, 1, self.wd)
+        self.left.addstr(curses.LINES - 1, 1, f"{self.wd} [{self.filesIndex + 1}/{len(self.files)}]")
 
         # Right screen (preview)
         if self.previewType == PreviewType.FILE:
@@ -165,6 +174,8 @@ class Renderer:
             for f in self.previewDirList:
                 self.right.addstr(i, 1, f"\t> {f}", curses.color_pair(1))
                 i = i + 1
+                if i > curses.LINES - 2:
+                    break # TODO Fix this so that we can "scroll" through the files if there are too many
         else:
             pass
 
