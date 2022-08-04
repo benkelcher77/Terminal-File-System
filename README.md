@@ -14,5 +14,4 @@ If this is done correctly, then the file manager can be launched in the current 
 
 ## TODOs
 
-- Fix issues that occur when too many files are in directory/subdirectory
 - File type inference; opening files with correct program rather than just nvim for everything

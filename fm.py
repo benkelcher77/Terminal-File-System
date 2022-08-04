@@ -66,6 +66,7 @@ class Renderer:
         self.files = os.listdir(self.wd)
         self.files.sort()
         self.filesIndex = 0
+        self.filesOffsFromTop = 0
         self.determinePreviewType()
 
     def determinePreviewType(self):
@@ -103,10 +104,14 @@ class Renderer:
             self.filesIndex = self.filesIndex + 1
             if self.filesIndex >= len(self.files):
                 self.filesIndex = len(self.files) - 1
+            if self.filesIndex > curses.LINES - 3 + self.filesOffsFromTop:
+                self.filesOffsFromTop += 1
         elif c == curses.KEY_UP:
             self.filesIndex = self.filesIndex - 1
             if self.filesIndex < 0:
                 self.filesIndex = 0
+            if self.filesIndex < self.filesOffsFromTop:
+                self.filesOffsFromTop -= 1
         elif c == curses.KEY_ENTER or c == 10 or c == 13:
             self.determinePreviewType()
 
@@ -152,8 +157,8 @@ class Renderer:
 
         # Left screen (current directory)
         i = 1
-        for f in self.files:
-            col = curses.color_pair(1) if (i - 1) != self.filesIndex else curses.color_pair(2)
+        for f in self.files[self.filesOffsFromTop:(self.filesOffsFromTop + curses.LINES - 2)]:
+            col = curses.color_pair(1) if (i - 1 + self.filesOffsFromTop) != self.filesIndex else curses.color_pair(2)
             self.left.addstr(i, 1, f, col)
             i = i + 1
             if i > curses.LINES - 2:
