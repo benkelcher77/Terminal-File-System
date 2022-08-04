@@ -9,6 +9,8 @@ import enum
 import os
 import os.path
 
+import pwd
+
 import subprocess
 import stat
 import sys
@@ -84,14 +86,18 @@ class Renderer:
             
             try:
                 fileInfo = os.stat(path)
+                accessTime = fileInfo.st_atime
                 modTime = fileInfo.st_mtime
                 size = fileInfo.st_size
                 perms = parsePermissions(fileInfo.st_mode)
+                owner = pwd.getpwuid(fileInfo.st_uid).pw_name
 
                 self.fileInfoStrs = [
                     f"Size: {size} B",
+                    f"Previous Access: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(accessTime))}",
                     f"Previous Modification: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(modTime))}",
-                    f"Permissions: {perms}"
+                    f"Permissions: {perms}",
+                    f"Owner: {owner}"
                 ]
             except PermissionError:
                 self.fileInfoStrs = ["ERROR: Failed to obtain file statistics."]
