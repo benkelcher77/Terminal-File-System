@@ -69,10 +69,19 @@ class Renderer:
         self.files.sort()
         self.filesIndex = 0
         self.filesOffsFromTop = 0
-        self.determinePreviewType()
+        self.determinePreviewType(self.files)
 
-    def determinePreviewType(self):
-        path = os.path.join(self.wd, self.files[self.filesIndex])
+        # Searching
+        self.searchQuery = ""
+        self.searching = False
+        self.filteredFiles = self.files
+
+    def determinePreviewType(self, files):
+        if len(files) == 0:
+            self.previewDirList = ["Preview unavailable."]
+            return
+
+        path = os.path.join(self.wd, files[self.filesIndex])
 
         if os.path.isdir(path):
             self.previewType = PreviewType.DIRECTORY
@@ -106,51 +115,91 @@ class Renderer:
     def update(self):
         c = self.stdscr.getch()
 
-        if c == curses.KEY_DOWN:
-            self.filesIndex = self.filesIndex + 1
-            if self.filesIndex >= len(self.files):
-                self.filesIndex = len(self.files) - 1
-            if self.filesIndex > curses.LINES - 3 + self.filesOffsFromTop:
-                self.filesOffsFromTop += 1
-        elif c == curses.KEY_UP:
-            self.filesIndex = self.filesIndex - 1
-            if self.filesIndex < 0:
-                self.filesIndex = 0
-            if self.filesIndex < self.filesOffsFromTop:
-                self.filesOffsFromTop -= 1
-        elif c == curses.KEY_ENTER or c == 10 or c == 13:
-            self.determinePreviewType()
+        files = self.files if (len(self.searchQuery) == 0 and not self.searching) else self.filteredFiles
 
-            if self.previewType == PreviewType.FILE:
-                # Suspend curses
-                curses.endwin()
+        if not self.searching:
+            if c == curses.KEY_DOWN:
+                self.filesIndex = self.filesIndex + 1
+                if self.filesIndex >= len(files):
+                    self.filesIndex = len(files) - 1
+                if self.filesIndex > curses.LINES - 3 + self.filesOffsFromTop:
+                    self.filesOffsFromTop += 1
+            elif c == curses.KEY_UP:
+                self.filesIndex = self.filesIndex - 1
+                if self.filesIndex < 0:
+                    self.filesIndex = 0
+                if self.filesIndex < self.filesOffsFromTop:
+                    self.filesOffsFromTop -= 1
+            elif (c == curses.KEY_ENTER or c == 10 or c == 13) and len(files) > 0:
+                self.determinePreviewType(files)
 
-                # Open the file
-                proc = subprocess.Popen(["nvim", os.path.join(self.wd, self.files[self.filesIndex])])
-                proc.wait()
+                if self.previewType == PreviewType.FILE:
+                    # Suspend curses
+                    curses.endwin()
 
-                # Restart curses
-                self.stdscr = curses.initscr()
-                self.stdscr.clear()
-                self.stdscr.refresh()
-            elif self.previewType == PreviewType.DIRECTORY:
-                # Change directories into the file and update everything
-                os.chdir(os.path.join(self.wd, self.files[self.filesIndex]))
+                    # Open the file
+                    proc = subprocess.Popen(["nvim", os.path.join(self.wd, files[self.filesIndex])])
+                    proc.wait()
+
+                    # Restart curses
+                    self.stdscr = curses.initscr()
+                    self.stdscr.clear()
+                    self.stdscr.refresh()
+                elif self.previewType == PreviewType.DIRECTORY:
+                    # Change directories into the file and update everything
+                    os.chdir(os.path.join(self.wd, self.files[self.filesIndex]))
+                    self.wd = os.getcwd()
+                    self.files = os.listdir(self.wd)
+                    self.files.sort()
+                    self.filesIndex = 0
+                    self.filesOffsFromTop = 0
+            elif c == curses.KEY_BACKSPACE:
+                # Go to parent dir
+                os.chdir("../")
                 self.wd = os.getcwd()
                 self.files = os.listdir(self.wd)
                 self.files.sort()
                 self.filesIndex = 0
-        elif c == curses.KEY_BACKSPACE:
-            # Go to parent dir
-            os.chdir("../")
-            self.wd = os.getcwd()
-            self.files = os.listdir(self.wd)
-            self.files.sort()
-            self.filesIndex = 0
-        elif c == ord('q'):
-            return True
+                self.searchQuery = ""
+            elif c == ord('\\'):
+                # Clear the search query
+                self.searchQuery = ""
+                self.files = os.listdir(self.wd)
+                self.files.sort()
+            elif c == ord("/"):
+                self.searching = True
+                self.filteredFiles = self.files
+            elif c == ord('q'):
+                return True
+        else:
+            if c == curses.KEY_ENTER or c == 10 or c == 13:
+                self.searching = False
+            elif c == curses.KEY_BACKSPACE:
+                self.searchQuery = self.searchQuery[:-1]
+                self.filteredFiles = [f for f in self.files if self.searchQuery in f]
+                self.filesIndex = 0
+                self.filesOffsFromTop = 0
+                files = self.filteredFiles
+            elif c == curses.KEY_DOWN:
+                self.filesIndex = self.filesIndex + 1
+                if self.filesIndex >= len(files):
+                    self.filesIndex = len(files) - 1
+                if self.filesIndex > curses.LINES - 3 + self.filesOffsFromTop:
+                    self.filesOffsFromTop += 1
+            elif c == curses.KEY_UP:
+                self.filesIndex = self.filesIndex - 1
+                if self.filesIndex < 0:
+                    self.filesIndex = 0
+                if self.filesIndex < self.filesOffsFromTop:
+                    self.filesOffsFromTop -= 1
+            else:
+                self.searchQuery = self.searchQuery + chr(c)
+                self.filteredFiles = [f for f in self.files if self.searchQuery in f]
+                self.filesIndex = 0
+                self.filesOffsFromTop = 0
+                files = self.filteredFiles
 
-        self.determinePreviewType()
+        self.determinePreviewType(files)
 
         return False
 
@@ -163,32 +212,36 @@ class Renderer:
 
         # Left screen (current directory)
         i = 1
-        for f in self.files[self.filesOffsFromTop:(self.filesOffsFromTop + curses.LINES - 2)]:
+        files = self.files if (len(self.searchQuery) == 0 and not self.searching) else self.filteredFiles
+        for f in files[self.filesOffsFromTop:(self.filesOffsFromTop + curses.LINES - 2)]:
             col = curses.color_pair(1) if (i - 1 + self.filesOffsFromTop) != self.filesIndex else curses.color_pair(2)
             self.left.addstr(i, 1, f, col)
             i = i + 1
             if i > curses.LINES - 2:
                 break # TODO Fix this so that we can "scroll" through the files if there are too many
 
-        self.left.addstr(curses.LINES - 1, 1, f"{self.wd} [{self.filesIndex + 1}/{len(self.files)}]")
+        if self.searching or len(self.searchQuery) > 0:
+            self.left.addstr(0, 1, f"Filter: {self.searchQuery}")
+        self.left.addstr(curses.LINES - 1, 1, f"{self.wd} [{self.filesIndex + 1}/{len(files)}]")
 
         # Right screen (preview)
-        if self.previewType == PreviewType.FILE:
-            self.right.addstr(1, 1, f"File: {os.path.join(self.wd, self.files[self.filesIndex])}", curses.color_pair(1))
-            i = 2
-            for s in self.fileInfoStrs:
-                self.right.addstr(i, 1, s, curses.color_pair(1))
-                i = i + 1
-        elif self.previewType == PreviewType.DIRECTORY:
-            self.right.addstr(1, 1, f"Directory: {os.path.join(self.wd, self.files[self.filesIndex])}", curses.color_pair(1))
-            i = 2
-            for f in self.previewDirList:
-                self.right.addstr(i, 1, f"\t> {f}", curses.color_pair(1))
-                i = i + 1
-                if i > curses.LINES - 2:
-                    break # TODO Fix this so that we can "scroll" through the files if there are too many
-        else:
-            pass
+        if len(files) > 0:
+            if self.previewType == PreviewType.FILE:
+                self.right.addstr(1, 1, f"File: {os.path.join(self.wd, files[self.filesIndex])}", curses.color_pair(1))
+                i = 2
+                for s in self.fileInfoStrs:
+                    self.right.addstr(i, 1, s, curses.color_pair(1))
+                    i = i + 1
+            elif self.previewType == PreviewType.DIRECTORY:
+                self.right.addstr(1, 1, f"Directory: {os.path.join(self.wd, files[self.filesIndex])}", curses.color_pair(1))
+                i = 2
+                for f in self.previewDirList:
+                    self.right.addstr(i, 1, f"\t> {f}", curses.color_pair(1))
+                    i = i + 1
+                    if i > curses.LINES - 2:
+                        break # TODO Fix this so that we can "scroll" through the files if there are too many
+            else:
+                pass
 
         self.left.refresh()
         self.right.refresh()
