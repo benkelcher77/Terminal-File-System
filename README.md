@@ -37,3 +37,4 @@ panel. To exit search mode, hit the enter key.
 ## TODOs
 
 - File type inference; opening files with correct program rather than just nvim for everything
+- Configuration settings in a .json or .ini file or similar
