@@ -147,12 +147,14 @@ class Renderer:
                     self.stdscr.refresh()
                 elif self.previewType == PreviewType.DIRECTORY:
                     # Change directories into the file and update everything
-                    os.chdir(os.path.join(self.wd, self.files[self.filesIndex]))
+                    os.chdir(os.path.join(self.wd, files[self.filesIndex]))
                     self.wd = os.getcwd()
                     self.files = os.listdir(self.wd)
                     self.files.sort()
                     self.filesIndex = 0
                     self.filesOffsFromTop = 0
+                    self.searchQuery = "" # Clear the search query
+                    files = self.files
             elif c == curses.KEY_BACKSPACE:
                 # Go to parent dir
                 os.chdir("../")
@@ -161,6 +163,7 @@ class Renderer:
                 self.files.sort()
                 self.filesIndex = 0
                 self.searchQuery = ""
+                files = self.files
             elif c == ord('\\'):
                 # Clear the search query
                 self.searchQuery = ""
