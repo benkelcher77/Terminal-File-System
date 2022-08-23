@@ -16,6 +16,13 @@ import stat
 import sys
 import time
 
+COLOR_PAIRS = {
+    "WHITE_ON_BLACK": 1,
+    "BLACK_ON_WHITE": 2,
+    "BLUE_ON_BLACK": 3,
+    "BLUE_ON_WHITE": 4
+}
+
 def parsePermissions(mode):
     perms = list("---------")
 
@@ -60,8 +67,10 @@ class Renderer:
         self.right = self.stdscr.subwin(curses.LINES, curses.COLS // 2, 0, curses.COLS // 2 - 1)
 
         # Colours. Format: (pair_index, FG_COLOR, BG_COLOR)
-        curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
-        curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_WHITE)
+        curses.init_pair(COLOR_PAIRS["WHITE_ON_BLACK"], curses.COLOR_WHITE, curses.COLOR_BLACK)
+        curses.init_pair(COLOR_PAIRS["BLACK_ON_WHITE"], curses.COLOR_BLACK, curses.COLOR_WHITE)
+        curses.init_pair(COLOR_PAIRS["BLUE_ON_BLACK"], curses.COLOR_BLUE, curses.COLOR_BLACK)
+        curses.init_pair(COLOR_PAIRS["BLUE_ON_WHITE"], curses.COLOR_BLUE, curses.COLOR_WHITE)
 
         # Class variables
         self.wd = os.getcwd()
@@ -217,7 +226,11 @@ class Renderer:
         i = 1
         files = self.files if (len(self.searchQuery) == 0 and not self.searching) else self.filteredFiles
         for f in files[self.filesOffsFromTop:(self.filesOffsFromTop + curses.LINES - 2)]:
-            col = curses.color_pair(1) if (i - 1 + self.filesOffsFromTop) != self.filesIndex else curses.color_pair(2)
+            if (i - 1 + self.filesOffsFromTop) != self.filesIndex:
+                col = curses.color_pair(COLOR_PAIRS["WHITE_ON_BLACK"])
+            else:
+                col = curses.color_pair(COLOR_PAIRS["BLACK_ON_WHITE"])
+
             self.left.addstr(i, 1, f, col)
             i = i + 1
             if i > curses.LINES - 2:
