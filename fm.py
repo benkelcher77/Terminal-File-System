@@ -252,9 +252,11 @@ class Renderer:
                 self.right.addstr(1, 1, f"Directory: {os.path.join(self.wd, files[self.filesIndex])}", curses.color_pair(1))
                 i = 2
                 for f in self.previewDirList:
-                    self.right.addstr(i, 1, f"\t> {f}", curses.color_pair(1))
-                    i = i + 1
-                    if i > curses.LINES - 2:
+                    if i < curses.LINES - 2:
+                        self.right.addstr(i, 1, f"    > {f}", curses.color_pair(1))
+                        i = i + 1
+                    else:
+                        self.right.addstr(i, 1, f"... and {len(self.previewDirList) - (i - 2)} more ...", curses.color_pair(1))
                         break # TODO Fix this so that we can "scroll" through the files if there are too many
             else:
                 pass
