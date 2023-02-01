@@ -120,6 +120,20 @@ class Renderer:
             except PermissionError:
                 self.fileInfoStrs = ["ERROR: Failed to obtain file statistics."]
 
+    def isCurrentFileExecutable(self, files):
+        if len(files) == 0:
+            return False
+
+        path = os.path.join(self.wd, files[self.filesIndex])
+
+        if os.path.isdir(path):
+            return False
+        else:
+            try:
+                fileInfo = os.stat(path)
+                return bool(fileInfo.st_mode & stat.S_IXUSR) # TODO Check if file is executable by current user, NOT owner
+            except PermissionError:
+                return False
 
     def update(self):
         c = self.stdscr.getch()
@@ -144,9 +158,9 @@ class Renderer:
 
                 if self.previewType == PreviewType.FILE:
                     # Suspend curses
+                    self.stdscr.clear()
                     curses.endwin()
 
-                    # Open the file
                     proc = subprocess.Popen(["nvim", os.path.join(self.wd, files[self.filesIndex])])
                     proc.wait()
 
@@ -164,6 +178,30 @@ class Renderer:
                     self.filesOffsFromTop = 0
                     self.searchQuery = "" # Clear the search query
                     files = self.files
+            elif c == ord("e"):
+                self.determinePreviewType(files)
+
+                if self.previewType == PreviewType.FILE:
+                    executable = self.isCurrentFileExecutable(self.files)
+                    if executable:
+                        # Suspend curses
+                        self.stdscr.clear()
+                        curses.endwin()
+
+                        proc = subprocess.Popen([f"{os.path.join(self.wd, files[self.filesIndex])}"])
+                        proc.wait()
+
+                        print("")
+                        input("Press ENTER to continue...")
+
+                        # Restart curses
+                        self.stdscr = curses.initscr()
+                        self.stdscr.clear()
+                        self.stdscr.refresh()
+                    else:
+                        pass # TODO Message somewhere about non-executable file
+                else:
+                    pass # TODO Message somewhere about executing directories
             elif c == curses.KEY_BACKSPACE:
                 # Go to parent dir
                 os.chdir("../")

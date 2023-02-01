@@ -28,6 +28,7 @@ panel. To exit search mode, hit the enter key.
 | Key | Action |
 | --- | ------ |
 | q | If not in search mode, exit the file manager. |
+| e | If current file is executable and not in search mode, execute the file. |
 | / | If not in search mode, enter search mode. |
 | [Enter] | If not in search mode, access the selected file/directory. If in search mode, exit search mode. |
 | [Backspace] | If not in search mode, access the parent directory. If in search mode, delete last character of search query. |
