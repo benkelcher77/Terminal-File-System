@@ -37,4 +37,5 @@ panel. To exit search mode, hit the enter key.
 ## TODOs
 
 - File type inference; opening files with correct program rather than just nvim for everything
+    - Different file previews for different file types (eg. for sound files, display length; for text files, display wordcount etc.)
 - Configuration settings in a .json or .ini file or similar
