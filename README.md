@@ -34,9 +34,3 @@ panel. To exit search mode, hit the enter key.
 | [Backspace] | If not in search mode, access the parent directory. If in search mode, delete last character of search query. |
 | [Up/Down] | Navigate through the items listed in the left-hand panel. |
 
-
-## TODOs
-
-- File type inference; opening files with correct program rather than just nvim for everything
-    - Different file previews for different file types (eg. for sound files, display length; for text files, display wordcount etc.)
-- Configuration settings in a .json or .ini file or similar
